@@ -158,4 +158,4 @@ int main() {
 		cout << tab[i].name << ' ' << tab[i].score << endl;
 	}
 	return 0;
-}
+//over

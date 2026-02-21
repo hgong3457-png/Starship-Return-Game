@@ -66,3 +66,58 @@ int main() {
 	}
 	return 0;
 }
+
+//task2:找到距离最大的两点坐标
+#include<iostream>
+#include<cmath>
+using namespace std;
+struct dian {
+	int num;
+	double x;
+	double y;
+};
+int main() {
+	int m;
+	cin >> m;
+	if (m <= 0 || m >= 100) {
+		return 0;
+	}
+	if (m == 1) {
+		cout << "No Distance!" << endl;
+		return 0;
+	}
+	dian point[105];
+	for (int i = 1; i <= m; i++) {
+		point[i].num = i; //并不输入序号，手动顺序编排序号
+		cin >> point[i].x >> point[i].y;
+		for (int j = 1; j < i; j++) { //!往前!对比是否有相同
+			if (point[i].x == point[j].x && point[i].y == point[j].y) {
+				cout << "Repeated Points!" << endl;
+				return 0;
+			}
+		}
+	}  //这个循环主要是输入结构体内容
+	double max_dis = 0;
+	
+	for (int i = 1; i < m; i++) {
+		for (int j = i + 1; j <= m; j++) { //往后找j来算距离共 m*（m-1）/2 个distance
+			double dx = point[j].x - point[i].x;
+			double dy = point[j].y - point[i].y;
+			double dis = sqrt(dx * dx + dy * dy);
+
+			if (dis > max_dis)
+				max_dis = dis; //注意！没必要把所有距离都保存，只需要算出当下来不断更新最大距离 
+		}						//因为即使保存距离，最后输出的是num，仍然无法将每个距离跟num关联！
+
+	} //这个循环是为了找到最大距离
+	for (int i = 1; i < m; i++) {
+		for (int j = i + 1; j <= m; j++) {
+			double dx = point[j].x - point[i].x;
+			double dy = point[j].y - point[i].y;
+			double distance = sqrt(dx * dx + dy * dy);
+			if (distance == max_dis) {
+				cout << point[i].num << ' ' << point[j].num << endl;
+			}  //每一次循环重新定义变量dx，dy和distance。唯有max_dis是宏观变量
+		}
+	}
+}

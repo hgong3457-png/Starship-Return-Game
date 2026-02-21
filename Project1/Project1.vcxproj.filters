@@ -15,16 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="111.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="习题.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="OJ  Task作业.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="测试题.cpp">
+    <ClCompile Include="project1.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

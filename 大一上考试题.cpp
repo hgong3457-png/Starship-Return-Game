@@ -121,3 +121,15 @@ int main() {
 		}
 	}
 }
+
+//task1:二进制拆分
+#include<iostream>
+#include<string>
+using namespace std;
+//函数返回类型应为字符串，因为一系列（）和数字都可以是字符型
+string solve(int n) { //n是需要拆分的对象
+	if (n == 0) {
+		return "0";
+	}
+
+}

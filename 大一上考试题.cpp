@@ -131,5 +131,49 @@ string solve(int n) { //n是需要拆分的对象
 	if (n == 0) {
 		return "0";
 	}
+	string s = ""; //先初始化一个空字符串，后逐层扩展
 
+	for (int i = 31; i >= 0; i--) {
+		if((n>>i)&1) //如果n的第i位是1，位运算后结果为00...1 即1是true，说明该为2的一个幂次，需要执行拆分操作
+			s += "(" + solve(i) + ")"; //注意不可写i，否则无法自动继续递归。调用函数会自动深入，并保留当前还未遍历完的上层状态
+	}
+		return s;
+}   //第1个函数：拆分出一串0和（）的字符串
+	
+string last_solve(int n) {
+	if (n == 0) {
+		return"(-)"; //如果只是0，那么直接加（）变-。
+	}
+	string s = solve(n); //先调用第一个函数得初始字符串
+	string result = ""; //再定义最终字符串：result
+	for (int i = 0; i < s.length(); i++) { //字符串可以视作数组
+		if (s[i] == '0') {
+			result += '-'; // 如果这一处是字符0，就变成字符-
+		}
+		else {
+			result += s[i]; //如果是括号，直接加上
+		}
+	}
+	return result;
+
+} //第二个函数，在调用第一个函数的基础上进行修饰
+
+void encoding(int n) {
+	cout << "Integer encoding result" << last_solve(n) << endl;
+}
+void encoding(char ch) {
+	cout << "Character encoding result" << last_solve(int(ch)) << endl;
+}
+void encoding(double x) {
+	cout << "Floating encoding result" << last_solve(int(x)) << endl;
+}  //这三个函数属于第三层函数，在调用第二层函数基础上为同名不同参的的重载函数，本质都要先int（）化再处理
+int main() {
+	int n;
+	char ch;
+	double x;
+	cin >> n >> ch >> x;
+	encoding(n);
+	encoding(ch);
+	encoding(x);
+	return 0;
 }

@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <ctime>
 #include <cmath>
+#include<tchar.h>
 
 // 基础配置
 #define W 800
@@ -156,7 +157,7 @@ int main() {
             if (pla.z < 600) {
                 worldX += (px > W / 2) ? -2 : 2;
                 worldY += (py > H / 2) ? -2 : 2;
-                setcolor(YELLOW); outtextxy(W / 2 - 50, H - 180, "警告：进入行星引力场");
+                setcolor(YELLOW); outtextxy(W / 2 - 50, H - 180, _T("警告：进入行星引力场"));
             }
             if (pla.z <= 1) { pla.active = 0; if (abs(px - W / 2) < pSize) hp -= 3; }
         }
@@ -171,14 +172,14 @@ int main() {
             float bpf = 400 / bh.z;
             int bpx = (int)((bh.x + worldX) * bpf + W / 2);
             int bpy = (int)((bh.y + worldY) * bpf + H / 2);
-            setfillcolor(BLACK); setlinecolor(PURPLE);
+            setfillcolor(BLACK); setlinecolor(BLACK);
             fillcircle(bpx, bpy, (int)(80 * bpf));
             circle(bpx, bpy, (int)(90 * bpf));
             // 强引力
             if (bh.z < 700) {
                 worldX += (bpx > W / 2) ? -5 : 5;
                 worldY += (bpy > H / 2) ? -5 : 5;
-                setcolor(MAGENTA); outtextxy(W / 2 - 60, H - 200, "危险：黑洞强引力！！");
+                setcolor(MAGENTA); outtextxy(W / 2 - 60, H - 200, _T("危险：黑洞强引力！！"));
             }
             if (bh.z <= 1) { bh.active = 0; if (abs(bpx - W / 2) < 80 * bpf) hp = 0; }
         }
@@ -194,12 +195,12 @@ int main() {
         setfillcolor(RGB(10, 20, 10));
         fillrectangle(50, 20, 250, 100);
         setcolor(GREEN);
-        outtextxy(60, 30, "航线进度:");
+        outtextxy(60, 30, _T("航线进度:"));
         line(60, 80, 240, 80); // 进度条底线
         fillrectangle(60, 75, 60 + (int)((score / GOAL) * 180), 85); // 进度条
 
         // 右上角：血条仪表
-        setcolor(WHITE); outtextxy(W - 180, 30, "飞船护盾状态:");
+        setcolor(WHITE); outtextxy(W - 180, 30, _T("飞船护盾状态:"));
         for (int i = 0; i < hp; i++) {
             setfillcolor(i < 3 ? RED : GREEN);
             solidrectangle(W - 180 + i * 12, 55, W - 170 + i * 12, 75);
@@ -212,8 +213,8 @@ int main() {
         line(W / 2, H / 2 - 25, W / 2, H / 2 + 25);
 
         // 胜负判定
-        if (hp <= 0) { settextstyle(40, 0, "黑体"); outtextxy(W / 2 - 100, H / 2, "飞船坠毁"); FlushBatchDraw(); Sleep(3000); break; }
-        if (score >= GOAL) { settextstyle(40, 0, "黑体"); outtextxy(W / 2 - 100, H / 2, "成功抵达地球"); FlushBatchDraw(); Sleep(3000); break; }
+        if (hp <= 0) { settextstyle(40, 0, _T("黑体")); outtextxy(W / 2 - 100, H / 2, _T("飞船坠毁")); FlushBatchDraw(); Sleep(3000); break; }
+        if (score >= GOAL) { settextstyle(40, 0, _T("黑体")); outtextxy(W / 2 - 100, H / 2, _T("成功抵达地球")); FlushBatchDraw(); Sleep(3000); break; }
 
         FlushBatchDraw();
         Sleep(20);

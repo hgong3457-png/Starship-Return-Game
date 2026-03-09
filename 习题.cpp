@@ -783,3 +783,44 @@ int main() {
 //可以通过全局变量；静态变量static int a；引用。这三种方式来可直接通过改变参数来改变变量。
 //数组作为参数传递时，实际是退化为指针，只是传递数组首地址，会同步影响外部原数组
 //有3方法：1.直接数组名做指针 int arr[]，无需写大小。2.传递指针int*arr。3.传递引用int(&arr)[].此方法可保留数组大小
+
+/*丑数的判断。
+定义：一个数如果只包含2，3，5这三个质因子，且是正整数。
+思路：1.首先，判断是否int n>0。
+	  2.由于丑数n=2的k次幂*3的p次幂*5的m次幂(k,p,m均>=0),且幂次均为0时为1（故而1也是丑数）。
+	    所以采用n反复除以2，3，5，直到不再含有其中任意一个因子。如果此时剩下的是1，那么说明不含其他因数，所以是丑数；若非1，则不是丑数
+*/
+#include<iostream>
+using namespace std;
+class solution_1 { 
+public: //一定记得加，否则class默认私有，外界没法调用函数
+	bool isugly(int n) {  //先创建一个类，里面有个成员函数isugly用于判断丑数
+		if (n <= 0) {
+			return false;
+		}
+		while (n % 2 == 0) {
+			n /= 2; //如果它的因子里有2，则除以2.由于！while循环！会执行到不能继续为止，所以会把所有2因子除干净！
+		}
+		while (n % 3 == 0) {
+			n /= 3; //同样，判断完2，再看是不是3的倍数
+		}
+		while (n % 5 == 0) {
+			n /= 5;
+		}
+		return n == 1; //最后这句先看n==1是否成立成立返回值即为true，是丑数；不成立返回false
+	}
+};
+int main() {
+	solution p;//创建一个成员p
+	int n;
+	cin >> n;
+	cout << p.isugly(n) << endl;
+	return 0;
+}
+ 
+//丑数2：
+#include<iostream>
+using namespace std;
+class solution_2 {
+
+};

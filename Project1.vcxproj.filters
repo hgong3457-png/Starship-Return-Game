@@ -15,18 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="习题.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="OJ  Task作业.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="测试题.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="大一上考试题.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="星际返航游戏.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

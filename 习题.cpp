@@ -811,16 +811,75 @@ public: //一定记得加，否则class默认私有，外界没法调用函数
 	}
 };
 int main() {
-	solution p;//创建一个成员p
+	solution_1 p;//创建一个成员p
 	int n;
 	cin >> n;
 	cout << p.isugly(n) << endl;
 	return 0;
 }
  
-//丑数2：
+//丑数2：给整数n，返回丑数列中第n个丑数
+//思路：1.最小堆法
+       // 由于丑数序列递增的，首先初始化一个空的最小堆，先将1加入进去，然后把他取出来，把他的2，3，5倍加进去。
+       //后面也都是先将现在堆中最小（堆顶）的丑数curr取出来（弹出）：如果是第n次，则就是第n个丑数；否则，取出后将curr的2，3，5倍去重后加入堆中
+      //所以每个数当沦为最小后就会被弹出，将由他生成的3个新丑数加入后，就功成身退了
+//此方法用到哈希表和最优队列
 #include<iostream>
 using namespace std;
 class solution_2 {
+public:
 
 };
+
+//思路（优化）：2。动态规划（三指针法）：
+//dp[i]肯定是其前面的某个数乘以 2 （或乘以 3、乘以 5）得出来的，
+//而dp[i] x 2 、dp[i] x 3、dp[i] x 5 这三个数，肯定也是dp 数组后面某个位置的数。
+//那就可以推断出来，dp这个数组上的数，每个位置肯定都要x2\x3\x5 一遍，其结果是放在dp 数组后面某个位置。
+//那我们就可以从这个数组初始的状态，即dp[1] = 1 开始，用p2\p3\p5 表示当前该哪个位置该乘以2\3\5 了。
+//我们只要每次取乘以 2、3、5 后的结果中最小的值，那这个最小的值就是最新一个的dp 值，
+//然后相应地移动一下计算出这个新dp 值的 p2（或 p3 或p5）索引，即该下一个数去乘以2（或3 或5）了。按次遍历，计算出第i个数，即为dp[i]
+#include <iostream>
+using namespace std;
+
+class Solution {
+public:
+	int nthUglyNumber(int n) {
+		// 创建一个普通数组用来存前 n 个丑数 (数组开到 1700 足够装下 1690 个)
+		int dp[1700] = { 0 };
+
+		// 第 1 个丑数固定是 1
+		dp[1] = 1;
+
+		// 设置三个“指针”!本质就是数组的下标! 初始都指向第 1 个丑数
+		int p2 = 1;
+		int p3 = 1;
+		int p5 = 1;
+
+		for (int i = 2; i <= n; i++) {
+			// 分别算出三个队伍当前的排头兵是谁
+			// (用 long long 是防止计算中间过程超出 int 范围)
+			long long num2 = (long long)dp[p2] * 2;
+			long long num3 = (long long)dp[p3] * 3;
+			long long num5 = (long long)dp[p5] * 5;
+
+			// 找出三个数里面最小的那个
+			long long nextUgly = num2;
+			if (num3 < nextUgly) nextUgly = num3;
+			if (num5 < nextUgly) nextUgly = num5;
+
+			// 把最小的数放进我们的丑数数组里
+			dp[i] = nextUgly;
+
+			// 谁被选中了，谁的指针就往前走一步
+			// 注意：这里用的是三个独立的 if，不是 else if！
+			// 这样如果 num2 和 num3 都是 6，p2 和 p3 都会前进，完美避免重复
+			if (dp[i] == num2) p2++;
+			if (dp[i] == num3) p3++;
+			if (dp[i] == num5) p5++;
+		}
+
+		// 循环结束，直接返回第 n 个丑数
+		return dp[n];
+	}
+};
+//由于始终是dp（丑数数组）里的数在衍生出新的数来，所以逐渐是1*2，1*3，2*2，1*5，2*3，2*5...就是混合的丑数！

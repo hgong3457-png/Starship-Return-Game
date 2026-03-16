@@ -845,7 +845,7 @@ class Solution {
 public:
 	int nthUglyNumber(int n) {
 		// 创建一个普通数组用来存前 n 个丑数 (数组开到 1700 足够装下 1690 个)
-		int dp[1700] = { 0 };
+		int dp[1700] = { 0 };//初始化为0记得
 
 		// 第 1 个丑数固定是 1
 		dp[1] = 1;
@@ -857,7 +857,7 @@ public:
 
 		for (int i = 2; i <= n; i++) {
 			// 分别算出三个队伍当前的排头兵是谁
-			// (用 long long 是防止计算中间过程超出 int 范围)
+			// (用 long long 是防止！计算过程中间！超出 int 范围)
 			long long num2 = (long long)dp[p2] * 2;
 			long long num3 = (long long)dp[p3] * 3;
 			long long num5 = (long long)dp[p5] * 5;
@@ -876,10 +876,76 @@ public:
 			if (dp[i] == num2) p2++;
 			if (dp[i] == num3) p3++;
 			if (dp[i] == num5) p5++;
-		}
+		}  //用彼此独立的if，可确保如果几个同时是最小，都可加一
 
 		// 循环结束，直接返回第 n 个丑数
 		return dp[n];
 	}
 };
 //由于始终是dp（丑数数组）里的数在衍生出新的数来，所以逐渐是1*2，1*3，2*2，1*5，2*3，2*5...就是混合的丑数！
+
+//判断丑数用反复除法，找到丑数用直接生长法
+
+//洛谷5736：质数筛
+#include<iostream>
+using namespace std;
+bool isprime(int n) {
+	if (n <= 1 || n > 10e5) //这些不符合要求的数一概返回false，也确保了不会输出。同时1本来也就不算质数
+		return false;
+	if (n == 2) //2单独判断
+		return true;
+	for (int i = 2; i * i <= n; i++) {
+		if (n % i == 0)
+			return false;
+	}
+	return true;
+}
+int main() {
+	int n, arr[105];
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		cin >> arr[i] ;
+	}
+	for (int i = 0; i < n; i++) {
+		bool flag=isprime(arr[i]);
+		if (flag == true) {
+			cout << arr[i] << ' ';
+		}
+	}
+}
+//int就是正负数均包含。从-2*31到2*31-1
+//洛谷B2129
+#include<iostream>
+#include<iomanip>
+using namespace std;
+int max_1(int a, int b, int c) {
+	int flag = (a > b) ? a : b;
+	if (c > flag)
+		flag = c;
+	return flag;
+}
+int max_2(int a, int b, int c) {
+	int flag = (a + b > b) ? (a + b) : b;
+	if (c > flag)
+		flag = c;
+	return flag;
+}
+int max_3(int a, int b, int c) {
+	int flag = (a > b) ? a : b;
+	if (b + c > flag) {
+		flag = b + c;
+	}
+	return flag;
+}
+int main() {
+	int x,y,z;
+	cin >> x >> y >> z;
+	if (max_2(x, y, z) == 0 || max_3(x, y, z) == 0) {
+		return 0;
+	}
+	//需要判断分母是否有0，若有，直接结束运行
+	double m;
+	m =1.0* max_1(x, y, z) / max_2(x, y, z) / max_3(x, y, z);
+	//此处一定注意由于找最大值函数返回值是整数，整数乘除会截断小数位，所以精度丧失，所以需要*1.0来让结果保留成小数
+	cout << fixed << setprecision(3) << m << endl;
+}

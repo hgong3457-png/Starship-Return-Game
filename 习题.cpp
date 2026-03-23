@@ -949,3 +949,91 @@ int main() {
 	//此处一定注意由于找最大值函数返回值是整数，整数乘除会截断小数位，所以精度丧失，所以需要*1.0来让结果保留成小数
 	cout << fixed << setprecision(3) << m << endl;
 }
+
+//设计两个重载函数，分别返回两个数和三个数最大值
+int myMax(int a, int b) {
+	return a > b ? a : b;
+}
+int myMax(int a, int b, int c) {
+	return myMax(myMax(a, b), c);
+}
+//注意点：1.重载函数（同名函数）区分不靠返回值，而是靠参数表：参数类型，数目，顺序...
+       // 2.由于三个参数比较需要先两个比，再与第三者比。所以注意递进式设问！可以使用刚设计完的两个参数比较的函数！
+
+//洛谷：U271244 类的设计
+#include<iostream>
+#include<string>
+#include<assert.h>
+using namespace std;
+class date {
+private:
+	int year, month, day;
+	bool isLeapYear(int y)const {  //加const在函数后面是为了！保证：该成员函数不会修改任何成员变量的值！
+		return (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
+	}  //判断闰年：1.是4倍数但不是100倍数 2.是400倍数（注意是100倍数但不是400倍数 是平年）
+	int getDaysInMonth(int y, int m)const {
+		int days[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };// 先用一个列表存储每个月天数，对应月份参数返回对应天数
+		if (isLeapYear(y) && m == 2)
+			return 29; //如果是闰年的二月，为29天，天数不在列表里
+		
+		return days[m - 1]; //因为列表首元素即为第0位
+	}
+	void addoneday() {
+		day++;
+		if (day > getDaysInMonth(year, month)) {  //相当于我把y,m,d赋值给year...但我的函数形参叫重了，所以把year..当成实参又赋值给形参y,m,d
+			month++;								//所以前后y，m，d并不同
+			day = 1;
+			if (month > 12) {
+				year++;
+				month = 1;
+			}  //先判断月份限度，再判断年份限度
+		}
+	}
+	void suboneday() {
+		day--;
+		if (day < 1) {
+			month--; 
+			if (month < 1) {
+				year--;
+				month = 12;
+			}
+			day = getDaysInMonth(year, month); //此处与加一天不同，因为减一天是到上一月的最后一天，
+												//但上一月万一也不再是这一年的，需要即使更改
+		}
+	}
+public:
+	date(int y, int m, int d) :year(y), month(m), day(d) {
+
+	}
+	date operator+(int n)const {
+		date result = *this; //this是隐式指针1指向调用该函数的对象！现在dl调用，*this=dl,那么相当于把dl所有数据拷贝一份给result
+							//这块才定义对象result，所以是初始化操作，调用默认拷贝构造函数。只有不加date声名，才是普通赋值
+		for (int i = 0; i < n; i++) {
+			result.addoneday(); //重复对result进行操作，碰不到原dl。
+		}
+		return result;
+	}
+	date operator-(int n)const {
+		date result = *this;
+		for (int i = 0; i < n; i++) {
+			result.suboneday();
+		}
+		return result;
+	}
+	string toText()const {
+		return to_string(year) + '-' + to_string(month) + '-' + to_string(day);
+	}
+};
+int main()
+{
+	int y, m, d;
+	cin >> y >> m >> d;
+	date d1(y, m, d);
+
+	int n;
+	cin >> n;
+
+	cout << d1.toText() << " + " << n << " = " << (d1 + n).toText() << endl; //由于totext函数是类的成员函数，只能对象调用，所以上面把重载+函数返回值设为date类型
+	cout << d1.toText() << " - " << n << " = " << (d1 - n).toText() << endl;
+	return 0;
+}

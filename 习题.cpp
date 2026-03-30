@@ -1037,3 +1037,122 @@ int main()
 	cout << d1.toText() << " - " << n << " = " << (d1 - n).toText() << endl;
 	return 0;
 }
+
+//acwing：求 1 + 2 + … + n
+//要求不能使用乘除法、for、while、if、else、switch、case等关键字及条件判断语句(A ? B : C)
+//n*(n+1)/2不可用。for循环1到n相加不可用。
+//递归也不可用！（因为递归需要if判断终止条件）
+
+//核心：逻辑短路：&&运算，只要第1个为false，后面都不执行！可以以此代替if，作为递归的终止条件判断
+//递归仍是核心，可以多次调用所需运算函数，不用显式化整个循环！
+class solution {
+	int getsum(int n) {   //n==1时
+		int result = n;   //res先=1
+		(n > 0) && (result += getsum(n - 1)); //此时调用getsum（0），n==0第一个为false，触发短路，后面不加，则返回0本身
+		return result;  //result=1+0
+	} //其实每重递归会新给函数内 局部变量n，result在栈区新开一个空间，所以是同名但不是同一个
+};    //每一个result都是先保存住自己的n，等待调用后面把小数加和到自己这层的result上  //完美符合getsum是所有小数之和
+    //注意：随着递归变深，地址通常会向内存的一个方向（通常是向下）连续偏移。
+	// 这就是为什么如果递归太深（比如 n 极大），会导致 Stack Overflow（栈溢出） —— 也就是这块专门存“套娃”的内存空间被用光了。
+
+
+//acwing 链表（不同于数组，非连续的存储结构，由结点通过指针链接）
+//链表核心是由 结点 组成：每个结点存储两个东西：1.数据域 2.指针域，存储下一个结点的地址
+// 头结点；尾结点：最后一个，指针域是NULL，代表后面没人了
+//1.单向链表：只有一个指针域，指向后继结点，只能单向遍历，必须从头开始，慢
+//2.双向链表：包含两个指针域，指向前后两侧，双向遍历，但每个结点需要额外空间存储前驱指针
+//3.循环链表：在单向或双向链表基础上，将尾部指向头结点。从任一点出发可遍历整个链表
+
+struct ListNode {
+	int val;         // 存储的数据
+	ListNode* next;  //指向下一个结点的指针,指针存放的是地址，
+					// 64位系统（代表CPU寻址能力，需要8个字节门牌号即地址），所以指针大小固定！都是8字节。所以只要开的空间确定，就可以先写进来
+					//注意：这个还没定义完的数据类型的变量不可写进来，会无限套娃导致不知道大小，无限大内存，报错
+	ListNode(int x) : val(x), next(NULL) {} //方便快速定义的函数
+};
+class solution {
+public:
+	void deleteNode(ListNode* node) {
+		//将下一个C的 数据值 赋给当前B
+		node->val = node->next->val;
+		//中间先把C的地址临时保存一下，方便最后彻底释放C内存
+		ListNode* temp = node->next;
+		//用D的地址替换掉原先B指向的地址（原为c）
+		node->next = node->next->next;
+		delete temp;
+	}
+
+};
+//O（1）时间复杂度删除元素 实现思路：
+//常规：要删掉B，需要把A叫来更改指向地址为C。但是单向列表只知道C在哪，找不到上一个元素A，必须遍历一圈，耗费O(n)
+// 巧解：狸猫换太子！
+// 把C指向的D地址和C的值全部赋值给B，让B成为假C这时再删除C
+// 那么以后A继续找'B'，但貌似找的就是C相当于把B删掉了
+
+
+
+
+
+// 这是一个标准的单向链表结点定义
+struct ListNode {
+	int val;         // 这里存数据（宝藏）
+	ListNode* next;  // 这里存下一个结点的地址（小纸条）
+
+	// 这是一个“构造函数”，方便我们快速创建新结点并赋值
+	ListNode(int x) {
+		val = x;
+		next = nullptr; // nullptr 是 C++ 中的空指针，代表后面没东西了（初始化）
+	}
+};
+// 1. 先创造三个独立的人（结点）
+ListNode* node1 = new ListNode(1);
+ListNode* node2 = new ListNode(3);
+ListNode* node3 = new ListNode(5);
+// 2. 把他们按顺序连起来（交换小纸条）
+node1->next = node2; // 1 的下一个是 3
+node2->next = node3; // 3 的下一个是 5
+// node3 的 next 默认就是 nullptr，不用管
+// 此时，node1 就是这个链表的“头结点 (Head)
+
+
+
+//例题：将两个原本顺序的链表组合后仍保持从小到大的排序
+class Solution {
+public:
+	ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
+		// 1. 请出一个“假人”作为新链表的虚拟头结点
+		ListNode* dummy = new ListNode(-1);
+		// cur 就像是老师的手，指向当前新队伍排到了哪里
+		ListNode* cur = dummy; //这是动态指针，标识进度
+
+		// 2. 当两队都还有人的时候，不断比较
+		while (l1 != nullptr && l2 != nullptr) {
+			if (l1->val <= l2->val) {
+				// l1 的人更矮（或一样高），接在 cur 后面
+				cur->next = l1;//内容交给了新队伍
+				l1 = l1->next; // l1 队伍换下一个人上前
+			}
+			else {
+				// l2 的人更矮，接在 cur 后面
+				cur->next = l2;
+				l2 = l2->next; // l2 队伍换下一个人上前
+			}
+			cur = cur->next; // 老师的手也往后挪一位，准备牵下一个人
+		}
+
+		// 3. 循环结束后，肯定有一队人空了，另一队还有剩
+		// 既然剩下的本来就是排好序的，直接把整串“尾巴”接上去就行了
+		if (l1 != nullptr) {
+			cur->next = l1;
+		}
+		else {
+			cur->next = l2;
+		}
+
+		// 4. 找到真正的头结点，释放假人
+		ListNode* realHead = dummy->next;
+		delete dummy; // 好习惯：new 出来的内存要 delete 掉
+
+		return realHead;
+	}
+};

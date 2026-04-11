@@ -1095,8 +1095,8 @@ public:
 
 // 这是一个标准的单向链表结点定义
 struct ListNode {
-	int val;         // 这里存数据（宝藏）
-	ListNode* next;  // 这里存下一个结点的地址（小纸条）
+	int val;         // 这里存数据
+	ListNode* next;  // 这里存下一个结点的地址
 
 	// 这是一个“构造函数”，方便我们快速创建新结点并赋值
 	ListNode(int x) {
@@ -1112,18 +1112,20 @@ ListNode* node3 = new ListNode(5);
 node1->next = node2; // 1 的下一个是 3
 node2->next = node3; // 3 的下一个是 5
 // node3 的 next 默认就是 nullptr，不用管
-// 此时，node1 就是这个链表的“头结点 (Head)
+// 此时，node1 就是这个链表的“头结点” (Head)
 
 
 
-//例题：将两个原本顺序的链表组合后仍保持从小到大的排序
+//例题：将两个原本顺序排列的链表组合后仍保持从小到大的排序
 class Solution {
 public:
 	ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
-		// 1. 请出一个“假人”作为新链表的虚拟头结点
+		// 1. 请出一个“假人”作为新链表的 虚拟头结点！
 		ListNode* dummy = new ListNode(-1);
 		// cur 就像是老师的手，指向当前新队伍排到了哪里
 		ListNode* cur = dummy; //这是动态指针，标识进度
+		//此段代码中dummy同front (充当头结点)；cur同rear（充当尾结点）
+		
 
 		// 2. 当两队都还有人的时候，不断比较
 		while (l1 != nullptr && l2 != nullptr) {
@@ -1140,7 +1142,7 @@ public:
 			cur = cur->next; // 老师的手也往后挪一位，准备牵下一个人
 		}
 
-		// 3. 循环结束后，肯定有一队人空了，另一队还有剩
+		// 3. 既然循环结束，肯定有一队人空了，另一队还有剩
 		// 既然剩下的本来就是排好序的，直接把整串“尾巴”接上去就行了
 		if (l1 != nullptr) {
 			cur->next = l1;
@@ -1149,10 +1151,80 @@ public:
 			cur->next = l2;
 		}
 
-		// 4. 找到真正的头结点，释放假人
+		// 4. 找到真正的头结点，释放假人（虚拟头结点）
 		ListNode* realHead = dummy->next;
 		delete dummy; // 好习惯：new 出来的内存要 delete 掉
 
 		return realHead;
 	}
 };
+
+//链表形式的队列：定义+入队+出队
+#include <iostream>
+using namespace std;
+
+// 你给出的结点定义（补充完整）
+struct ListNode {   //链队列 同链表一样：先定义一个节点类(由于希望外界能访问节点数值和指针库，所以用struct即可默认public)
+	int val;                           //再定义一个链表类(其中需要引用到 节点类型 数据/指针)
+	ListNode* next;   //？类型指针代表其指向？类型数据的地址
+	ListNode(int x) : val(x), next(nullptr) {}  //有参构造函数，便于后续创建一个节点时 快速初始化
+};
+
+// 带头结点的链队列类
+class LQueue {
+private:
+	//定义两个指针
+	ListNode* front;   // 指向头结点
+	ListNode* rear;    // 指向队尾结点
+	
+public:
+	LQueue() { initQueue(); } //自己定义一个无参构造函数，函数体内容为 调用一个 定义空队列的函数
+
+	// 初始化空队列（带头结点）  即使一开始没有任何有效元素，仍有一个无意义的占位节点，
+	                          // 方便统一 所有情况下的入队和出队操作
+	void initQueue() {
+		front = rear = new ListNode(0); // 头结点，val 无实际意义
+		front->next = nullptr;  //此行尽量写上，确保front指向为空，说明无元素；rear不用了，因为last one后面一定是空
+	}
+
+	// 判断队列是否为空
+	bool isEmpty() const {
+		return front == rear;   // 或 front->next == nullptr
+	}
+
+	// 入队  注意队列从后面进
+	void enQueue(int x) {
+		ListNode* newNode = new ListNode(x);
+		rear->next = newNode;  //先确保 当下的rear（末尾）和newNode连上
+		rear = newNode;        //再移动rear的指向
+	}
+
+	// 出队（成功返回 true，并将出队元素存入 变量x这个容器中）
+	bool deQueue(int& x) {
+		if (isEmpty()) 
+			return false;
+
+		//注意出队列的必须是front的下一个 实际头
+		ListNode* firstNode = front->next;   // 第一个实际数据结点
+		x = firstNode->val;
+		front->next = firstNode->next;
+
+		// 若删除的是最后一个结点，需将 rear 复位到头结点
+		if (rear == firstNode) {
+			rear = front;
+		}  //注意考虑边界条件
+
+		delete firstNode;
+		return true;
+	}
+
+	// 析构函数（释放所有余结点，包括头结点） ！重要！
+	~LQueue() {
+		while (front != nullptr) {
+			ListNode* temp = front;
+			front = front->next; //移动front位置
+			delete temp;
+		}
+	}
+};
+

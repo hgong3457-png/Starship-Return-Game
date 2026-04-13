@@ -1228,3 +1228,130 @@ public:
 	}
 };
 
+
+//Acwing：跳台阶
+//考虑递归--从第n级逆向倒推 An=p1*An-1 +p2*An-2
+//函数递归，直到触底（第0级）标记count++（说明走完了一条可能路线），再return返回
+#include<iostream>
+using namespace std;
+int ways = 0;
+void stair(int n) {
+	if (n < 0) return; //无效，直接return返回上一级冻结的状态继续往下执行
+					   //此条可保证n==1时，只用递归到0，递归-1那个会无效并终止递归
+	if (n == 0) {
+		ways++;
+		return;   //走到第0级说明此路线彻底走通了，计数并返回
+	}
+	//一定要把上述特例写在前面！把大多数 需要递归两种可能性的代码放最后
+	//否则先写如下两条 会陷进包括负数的 !无限递归
+	//因为他永远执行完第一条就又触发下一层了，根本看不到 终止条件判断那一步
+	//所以确保上述不符合终止条件后（default：）再执行两路递归
+	stair(n - 1);
+	stair(n - 2);
+}
+int main() {
+	int n;
+	cin >> n;
+	stair(n);
+	cout << ways;
+}
+
+//Acwing:走方格
+//法1：递归法（但n，m太大会导致时间复杂度太高）
+#include<iostream>
+using namespace std;
+int ans = 0;
+void square(int x, int y) {
+	if (x == 0 || y == 0) {
+		ans++;
+		return;
+	}
+	square(x - 1, y);
+	square(x, y - 1);
+}
+int main() {
+	int n, m;
+	cin >> n >> m;
+	square(n, m);
+	cout << ans;
+}
+
+//法2：组合数法 (大数时用）C(k,r)
+//注意：不可 将分子的阶乘算完最后再除以分母，阶乘导致数过大，会溢出！
+//采用res=res * (k-i+1)/i,同时一定要先乘再除，确保所得一定是整数，不会担心整除导致精度丢失
+#include<iostream>
+using namespace std;
+//由于可能性数量很大，所以仍然需要用long long
+long long combination(int k, int r) {
+	//先将选取数目r进行 边界限定
+	if (r<0 || r>k) return 0; //无方法
+	if (r == 0 || r == k) return 1;
+
+	if (r > k / 2) r = k - r;
+	//此处优化重要：利用组合数的对称性--可减少计算循环次数！
+	long long res = 1;
+	for (int i = 1; i < r; i++) {
+		res = res * (k - i + 1) / i;
+	}
+	return res;
+}
+int main() {
+	int n, m;
+	cin >> n >> m;
+	cout<<combination(n + m, n);
+	//走到(n,m)共需要走n+m步，其中先确定往下走的n步在什么时候发生
+}
+//问题解答
+//为什么res*(k-i+1)/i 绝对是整除？
+//因为组合数C(k,r)的定义告诉我们，它的结果一定是一个整数。
+     //解释一：由于实际物理含义是：从k个小球中无序取r个的 可能情况数，所以必为整数 
+	 //解释二：由C(k,r)=C(k-1,r)+C(k-1,r-1)组合数递推公式，一定是由基础整数加和而来，所以result仍整数
+	 //解释三：任意连续k个数相乘，一定能被k！整除  （因为自然数可以视为 1-k的1，2，3...n倍的集合，那么即使错位取k个数，也一定可以用前/后一组的弥补掉该组少的1-k中某个元素的倍数）
+
+
+//需要回溯的递归
+#include <iostream>
+using namespace std;
+
+const int N = 10;
+int n;
+int path[N];     // 相当于你手里的“盒子”，用来按顺序存放选出的数字
+bool st[N];      // 相当于“备忘录”，st[i] 为 true 表示数字 i 已经被放进盒子里了，不能再用了
+
+// u 表示当前正在尝试往第 u 个盒子里放数字 (u 从 0 开始)
+void dfs(int u) {
+	// 【终止条件】
+	// 如果 u == n，说明第 0 到 n-1 个盒子都已经装满了
+	// 就像迷宫走到了出口，这就是一个完整的排列！
+	if (u == n) {
+		for (int i = 0; i < n; i++) cout << path[i] << " ";
+		cout << endl; // 输出这个排列
+		return;       // 原路返回，去寻找下一种排列
+	}
+
+	// 【尝试所有的可能性】
+	// 站在第 u 个盒子前，我们看看 1 到 n 哪个数字还能用
+	for (int i = 1; i <= n; i++) {
+		if (!st[i]) {      // 如果数字 i 还没被用过 (备忘录上没打勾)
+
+			// 1. 做出选择 (往前走)
+			path[u] = i;   // 把数字 i 放进第 u 个盒子里
+			st[i] = true;  // 在备忘录上打勾：数字 i 已经用啦！
+
+			// 2. 递归 (深入下一步)
+			dfs(u + 1);    // 走到下一个盒子 (第 u+1 个) 前面，继续重复选数字的过程
+
+			// 3. 回溯 (恢复现场) <--- 这是最关键的一步！
+			// 当上面的 dfs(u+1) 结束返回时，说明包含当前选择的这条路已经走到底了
+			// 我们现在要退回上一步，尝试把其他的数字放进第 u 个盒子里
+			// 所以必须把刚刚用过的数字 i "拿出来"，也就是把备忘录上的勾擦掉！
+			st[i] = false;
+		}
+	}
+}
+
+int main() {
+	cin >> n;
+	dfs(0); // 从第 0 个盒子开始选
+	return 0;
+}

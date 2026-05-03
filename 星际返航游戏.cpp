@@ -21,12 +21,13 @@
 #define MAX_BULLETS 8
 #define GOAL_SCORE 1000  
 
-// --- 引力场核心参数 ---
-#define GRAVITY_DIST_MAX 600.0f  // 横向牵引极限距离
-#define GRAVITY_Z_MAX 800.0f     // 纵深牵引极限距离
+// --- ★ 引力场核心物理参数 ★ ---
+#define GRAVITY_DIST_MAX 600.0f         // 横向牵引极限距离
+#define GRAVITY_Z_MAX 800.0f            // 纵深牵引极限距离
+#define GRAVITY_RADIUS_THRESHOLD 40.0f  // 星球产生引力且不可被击碎的体积阈值
 
 struct Star { float x, y, z; };
-struct Rock { float x, y, z; int active; float radius; int isMassive; COLORREF colLine; COLORREF colBase; COLORREF colCore; };
+struct Rock { float x, y, z; int active; float radius; int isBlackHole; COLORREF colLine; COLORREF colBase; COLORREF colCore; };
 struct Bullet { float x, y, z; int active; };
 
 // 绘制拟真机甲风 HUD
@@ -113,7 +114,7 @@ int main() {
         int sx = 0, sy = 0;
         if (shakeTime > 0) { sx = rand() % 12 - 6; sy = rand() % 12 - 6; shakeTime--; }
 
-        // 玩家基础推力速度设定为 8.0f
+        // 玩家基础移速
         if (GetAsyncKeyState('W') & 0x8000) worldY += 8.0f;
         if (GetAsyncKeyState('S') & 0x8000) worldY -= 8.0f;
         if (GetAsyncKeyState('A') & 0x8000) worldX += 8.0f;
@@ -162,17 +163,27 @@ int main() {
                 rocks[i].z = 1000.0f + (float)(rand() % 800);
                 rocks[i].active = 1;
 
-                // 【参数设定1：大小阈值区分】
-                if (rand() % 100 < 15) {
-                    rocks[i].isMassive = 1;
-                    rocks[i].radius = (float)(rand() % 20 + 60); // 黑洞/巨星极度巨大 (>60)
+                int typeRand = rand() % 100;
+
+                // 【分类1】15% 核心黑洞：极强引力，无法摧毁
+                if (typeRand < 15) {
+                    rocks[i].isBlackHole = 1;
+                    rocks[i].radius = (float)(rand() % 20 + 60); // 体积 60~79
                     rocks[i].colLine = RGB(150, 0, 255);
                     rocks[i].colBase = RGB(10, 5, 20);
-                    rocks[i].colCore = RGB(0, 0, 0);     // 深邃吸光核心
+                    rocks[i].colCore = RGB(0, 0, 0);
                 }
                 else {
-                    rocks[i].isMassive = 0;
-                    rocks[i].radius = (float)(rand() % 20 + 15); // 小星球较小 (15~35)，且完全无引力
+                    rocks[i].isBlackHole = 0;
+                    // 【分类2 & 3】35%大星球(带引力不可摧毁) vs 50%小星球(无引力可摧毁)
+                    if (typeRand < 50) {
+                        rocks[i].radius = (float)(rand() % 15 + 40); // 体积 40~54 (大于等于阈值40)
+                    }
+                    else {
+                        rocks[i].radius = (float)(rand() % 20 + 15); // 体积 15~34 (小于阈值40)
+                    }
+
+                    // 赋予星体颜色
                     int cType = rand() % 4;
                     if (cType == 0) {
                         rocks[i].colLine = RGB(80, 80, 90); rocks[i].colBase = RGB(40, 40, 45); rocks[i].colCore = RGB(20, 20, 25);
@@ -203,42 +214,40 @@ int main() {
             setfillcolor(rocks[i].colCore);
             solidcircle(rx + rS / 4, ry + rS / 4, rS / 2);
 
-            // 【参数设定2与引力动画：向量化丝滑牵拉】
-            // 只有黑洞 (isMassive) 且进入深度的事件视界 (GRAVITY_Z_MAX) 才触发引力
-            if (rocks[i].isMassive && rocks[i].z < GRAVITY_Z_MAX && rocks[i].z > 10) {
+            // --- ★ 核心引力场逻辑 ★ ---
+            // 只要星体半径达到阈值 (GRAVITY_RADIUS_THRESHOLD) 就有引力
+            if (rocks[i].radius >= GRAVITY_RADIUS_THRESHOLD && rocks[i].z < GRAVITY_Z_MAX && rocks[i].z > 10) {
                 float dx = rocks[i].x + worldX;
                 float dy = rocks[i].y + worldY;
                 float dist2D = sqrt(dx * dx + dy * dy);
 
-                // 进入横向事件视界 (GRAVITY_DIST_MAX)
                 if (dist2D < GRAVITY_DIST_MAX && dist2D > 1.0f) {
-                    // 获取单位方向向量，保证拉扯方向精确对准星体中心
                     float dirX = dx / dist2D;
                     float dirY = dy / dist2D;
 
-                    // 计算距离强度因子 (0.0极远 ~ 1.0极近)
                     float intensityZ = 1.0f - (rocks[i].z / GRAVITY_Z_MAX);
                     float intensityXY = 1.0f - (dist2D / GRAVITY_DIST_MAX);
 
-                    // 核心物理：使用平方曲线产生几何级数暴增的黑洞吸力。
-                    // 极限牵引力可达 20.0f。当 pullForce 超过 8.0f 时，玩家引擎将绝对无法逃逸。
-                    float pullForce = 20.0f * (intensityZ * intensityZ) * (intensityXY * intensityXY);
+                    // 黑洞引力倍率为20，普通大星球引力倍率为10
+                    float baseGravity = rocks[i].isBlackHole ? 20.0f : 10.0f;
+                    float pullForce = baseGravity * (intensityZ * intensityZ) * (intensityXY * intensityXY);
 
                     worldX -= dirX * pullForce;
                     worldY -= dirY * pullForce;
 
-                    // 当引力强到一定程度，飞船由于受到撕扯力产生震动
                     if (pullForce > 5.0f && rand() % 3 == 0) {
-                        sx += rand() % 6 - 3;
-                        sy += rand() % 6 - 3;
+                        sx += rand() % 6 - 3; sy += rand() % 6 - 3;
                     }
                 }
             }
 
-            // 碰撞检测
+            // 碰撞扣血机制：黑洞扣3，大星球扣2，小星球扣1
             if (rocks[i].z < 20 && rocks[i].z > 5) {
                 if (abs(rx - W / 2) < rS * 0.7 && abs(ry - H / 2) < rS * 0.7) {
-                    hp -= rocks[i].isMassive ? 3 : 1; // 撞黑洞直接受到重创扣3血
+                    if (rocks[i].isBlackHole) hp -= 3;
+                    else if (rocks[i].radius >= GRAVITY_RADIUS_THRESHOLD) hp -= 2;
+                    else hp -= 1;
+
                     rocks[i].active = 0; shakeTime = 20; hitFlash = 5;
                 }
             }
@@ -265,9 +274,9 @@ int main() {
                         int rS = (int)(rocks[j].radius * rf);
 
                         if (abs(rx - bx) < rS * 0.9 && abs(ry - by) < rS * 0.9) {
-                            bullets[i].active = 0; // 子弹被吞噬抵消
-                            // 只有小行星能被摧毁，黑洞免疫
-                            if (!rocks[j].isMassive) {
+                            bullets[i].active = 0; // 命中目标，子弹消耗
+                            // ★ 只有小于引力体积阈值的小星球才能被击碎！
+                            if (rocks[j].radius < GRAVITY_RADIUS_THRESHOLD) {
                                 rocks[j].active = 0;
                                 score += 50;
                             }

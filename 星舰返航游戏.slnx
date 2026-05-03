@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/解决方案项/" />
+  <Project Path="星舰返航游戏.vcxproj" Id="80772068-2c02-41b6-b25d-226e8627b415" />
+</Solution>

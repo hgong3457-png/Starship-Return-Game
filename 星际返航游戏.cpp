@@ -19,24 +19,32 @@
 #define MAX_STARS 300
 #define MAX_ROCKS 10
 #define MAX_BULLETS 8
+#define MAX_PARTICLES 100 // 最大粒子数
 #define GOAL_SCORE 1000  
 
 // --- ★ 引力场核心物理参数 ★ ---
-#define GRAVITY_DIST_MAX 600.0f         // 横向牵引极限距离
-#define GRAVITY_Z_MAX 800.0f            // 纵深牵引极限距离
-#define GRAVITY_RADIUS_THRESHOLD 40.0f  // 星球产生引力且不可被击碎的体积阈值
+#define GRAVITY_DIST_MAX 600.0f         
+#define GRAVITY_Z_MAX 800.0f            
+#define GRAVITY_RADIUS_THRESHOLD 40.0f  
 
 struct Star { float x, y, z; };
 struct Rock { float x, y, z; int active; float radius; int isBlackHole; COLORREF colLine; COLORREF colBase; COLORREF colCore; };
 struct Bullet { float x, y, z; int active; };
 
-// 绘制拟真机甲风 HUD
+// 碎片粒子结构
+struct Particle {
+    float x, y, z;
+    float vx, vy, vz;
+    int life;     // 生命周期
+    int active;
+    COLORREF col;
+};
+
 void DrawSciFiHUD(int hp, int score) {
     POINT ptsLeftTop[] = { {0,0}, {250,0}, {180, 60}, {0, 60} };
     POINT ptsRightTop[] = { {W,0}, {W - 250,0}, {W - 180, 60}, {W, 60} };
-    POINT ptsBottom[] = { {0, H}, {W, H}, {W - 150, H - 80}, {150, H - 80} }; // 保持底部驾驶舱占比不变
+    POINT ptsBottom[] = { {0, H}, {W, H}, {W - 150, H - 80}, {150, H - 80} };
 
-    // 绘制底部和顶部基础轮廓
     setfillcolor(RGB(15, 18, 25));
     solidpolygon(ptsLeftTop, 4);
     solidpolygon(ptsRightTop, 4);
@@ -47,39 +55,24 @@ void DrawSciFiHUD(int hp, int score) {
     polygon(ptsRightTop, 4);
     polygon(ptsBottom, 4);
 
-    
-    // --- 新增：驾驶舱操控/报警按钮 (下方居中) ---
     COLORREF btnCol;
-    if (hp > 3) {
-        btnCol = RGB(0, 200, 80); // 正常状态：绿色
-    }
+    if (hp > 3) btnCol = RGB(0, 200, 80);
     else {
-        // 报警状态：红光闪烁 (利用 GetTickCount 控制频率，不影响外部游戏逻辑)
-        if ((GetTickCount() / 200) % 2 == 0) {
-            btnCol = RGB(255, 40, 40); // 亮红
-        }
-        else {
-            btnCol = RGB(80, 10, 10);  // 暗红
-        }
+        if ((GetTickCount() / 200) % 2 == 0) btnCol = RGB(255, 40, 40);
+        else btnCol = RGB(80, 10, 10);
     }
 
-    // 绘制一排 8 个按钮，均匀分布在下方信息栏的上方
     for (int i = 0; i < 8; i++) {
         int bx = W / 2 - 180 + i * 46;
-        int by = H - 65; // 在文本上方
+        int by = H - 65;
         setfillcolor(btnCol);
         solidrectangle(bx, by, bx + 35, by + 12);
-
-        // 给按钮添加暗色边框增加机械质感
         setlinecolor(RGB(30, 50, 70));
         rectangle(bx, by, bx + 35, by + 12);
     }
-   
 
-    // 顶部文本与进度条
     settextcolor(WHITE);
     settextstyle(16, 0, _T("Consolas"));
-
     outtextxy(20, 15, _T("SYS_PROGRESS:"));
     setfillcolor(RGB(40, 40, 40));
     solidrectangle(20, 35, 170, 45);
@@ -95,32 +88,19 @@ void DrawSciFiHUD(int hp, int score) {
     setfillcolor(hpCol);
     if (hp > 0) solidrectangle(W - 170, 35, W - 170 + (hp * 15), 45);
 
-    // 下方摧毁提示
     TCHAR s[64];
     _stprintf_s(s, _T("HOSTILES DESTROYED: %d"), score / 50);
     settextcolor(GOLD);
     outtextxy(W / 2 - 90, H - 40, s);
 }
 
-void DrawDeepSpace() {
-    setfillcolor(NEBULA_PURPLE);
-    solidcircle(150, 150, 300);
-    setfillcolor(NEBULA_BLUE);
-    solidcircle(W - 100, H - 100, 400);
-}
-
 int main() {
-    
     IMAGE img_bg;
     initgraph(W, H);
     srand((unsigned)time(NULL));
-  
-
-    // 加载背景图 
     loadimage(&img_bg, _T("background.jpg"), W, H);
 
-    int hp = 10;
-    int score = 0;
+    int hp = 10, score = 0;
     float worldX = 0, worldY = 0;
     int shootTimer = 0, shakeTime = 0, hitFlash = 0;
 
@@ -137,25 +117,19 @@ int main() {
     Bullet bullets[MAX_BULLETS];
     for (int i = 0; i < MAX_BULLETS; i++) bullets[i].active = 0;
 
+    Particle particles[MAX_PARTICLES];
+    for (int i = 0; i < MAX_PARTICLES; i++) particles[i].active = 0;
+
     while (1) {
         BeginBatchDraw();
-
-        if (hitFlash > 0) {
-            setbkcolor(RGB(80, 0, 0)); hitFlash--;
-        }
-        else {
-            setbkcolor(DEEP_SPACE);
-        }
+        if (hitFlash > 0) { setbkcolor(RGB(80, 0, 0)); hitFlash--; }
+        else { setbkcolor(DEEP_SPACE); }
         cleardevice();
 
         int sx = 0, sy = 0;
         if (shakeTime > 0) { sx = rand() % 12 - 6; sy = rand() % 12 - 6; shakeTime--; }
+        if (hitFlash == 0) putimage(sx, sy, &img_bg);
 
-        if (hitFlash == 0)
-            putimage(sx, sy, &img_bg);
-
-
-        // 玩家基础移速
         if (GetAsyncKeyState('W') & 0x8000) worldY += 8.0f;
         if (GetAsyncKeyState('S') & 0x8000) worldY -= 8.0f;
         if (GetAsyncKeyState('A') & 0x8000) worldX += 8.0f;
@@ -172,6 +146,7 @@ int main() {
             }
         }
 
+        // 星空背景绘制
         for (int i = 0; i < MAX_STARS; i++) {
             stars[i].z -= 10.0f;
             if (stars[i].z <= 1) {
@@ -182,66 +157,34 @@ int main() {
             float f = 400.0f / stars[i].z;
             int px = (int)((stars[i].x + worldX) * f + W / 2) + sx;
             int py = (int)((stars[i].y + worldY) * f + H / 2) + sy;
-
             if (px > 0 && px < W && py > 0 && py < H) {
                 int c = (int)(255 * (1 - stars[i].z / 1000.0f));
-                COLORREF starCol = RGB(c, c, c + (int)(stars[i].z / 10));
-                putpixel(px, py, starCol);
+                putpixel(px, py, RGB(c, c, c + (int)(stars[i].z / 10)));
             }
         }
 
-        // --- 障碍物与向量引力系统 ---
+        // 障碍物与引力系统
         for (int i = 0; i < MAX_ROCKS; i++) {
             if (!rocks[i].active) {
-                if (rand() % 100 < 30) {
-                    rocks[i].x = -worldX + (float)(rand() % 600 - 300);
-                    rocks[i].y = -worldY + (float)(rand() % 400 - 200);
-                }
-                else {
-                    rocks[i].x = -worldX + (float)(rand() % 1600 - 800);
-                    rocks[i].y = -worldY + (float)(rand() % 1200 - 600);
-                }
+                rocks[i].x = -worldX + (float)(rand() % 1600 - 800);
+                rocks[i].y = -worldY + (float)(rand() % 1200 - 600);
                 rocks[i].z = 1000.0f + (float)(rand() % 800);
                 rocks[i].active = 1;
-
                 int typeRand = rand() % 100;
-
-                // 【分类1】15% 核心黑洞：极强引力，无法摧毁
-                if (typeRand < 15) {
-                    rocks[i].isBlackHole = 1;
-                    rocks[i].radius = (float)(rand() % 20 + 60); // 体积 60~79
-                    rocks[i].colLine = RGB(150, 0, 255);
-                    rocks[i].colBase = RGB(10, 5, 20);
-                    rocks[i].colCore = RGB(0, 0, 0);
+                if (typeRand < 5) { // 黑洞出现概率 5%
+                    rocks[i].isBlackHole = 1; rocks[i].radius = (float)(rand() % 20 + 60);
+                    rocks[i].colLine = RGB(150, 0, 255); rocks[i].colBase = RGB(10, 5, 20); rocks[i].colCore = RGB(0, 0, 0);
                 }
                 else {
                     rocks[i].isBlackHole = 0;
-                    // 【分类2 & 3】35%大星球(带引力不可摧毁) vs 50%小星球(无引力可摧毁)
-                    if (typeRand < 50) {
-                        rocks[i].radius = (float)(rand() % 15 + 40); // 体积 40~54 (大于等于阈值40)
-                    }
-                    else {
-                        rocks[i].radius = (float)(rand() % 20 + 15); // 体积 15~34 (小于阈值40)
-                    }
-
-                    // 赋予星体颜色
+                    rocks[i].radius = (typeRand < 50) ? (float)(rand() % 15 + 40) : (float)(rand() % 20 + 15);
                     int cType = rand() % 4;
-                    if (cType == 0) {
-                        rocks[i].colLine = RGB(80, 80, 90); rocks[i].colBase = RGB(40, 40, 45); rocks[i].colCore = RGB(20, 20, 25);
-                    }
-                    else if (cType == 1) {
-                        rocks[i].colLine = RGB(90, 50, 50); rocks[i].colBase = RGB(50, 25, 25); rocks[i].colCore = RGB(25, 10, 10);
-                    }
-                    else if (cType == 2) {
-                        rocks[i].colLine = RGB(50, 70, 100); rocks[i].colBase = RGB(25, 35, 55); rocks[i].colCore = RGB(10, 15, 30);
-                    }
-                    else {
-                        rocks[i].colLine = RGB(60, 90, 60); rocks[i].colBase = RGB(30, 45, 30); rocks[i].colCore = RGB(15, 25, 15);
-                    }
+                    if (cType == 0) { rocks[i].colLine = RGB(200, 200, 200); rocks[i].colBase = RGB(100, 100, 100); rocks[i].colCore = RGB(50, 50, 50); }
+                    else if (cType == 1) { rocks[i].colLine = RGB(255, 100, 50); rocks[i].colBase = RGB(150, 50, 20); rocks[i].colCore = RGB(80, 20, 10); }
+                    else { rocks[i].colLine = HUD_BLUE; rocks[i].colBase = RGB(30, 60, 120); rocks[i].colCore = RGB(10, 20, 60); }
                 }
             }
             rocks[i].z -= 9.0f;
-
             if (rocks[i].z <= 1) { rocks[i].active = 0; continue; }
 
             float f = 400.0f / rocks[i].z;
@@ -249,46 +192,28 @@ int main() {
             int ry = (int)((rocks[i].y + worldY) * f + H / 2) + sy;
             int rS = (int)(rocks[i].radius * f);
 
-            setlinecolor(rocks[i].colLine);
-            setfillcolor(rocks[i].colBase);
-            fillcircle(rx, ry, rS);
-            setfillcolor(rocks[i].colCore);
-            solidcircle(rx + rS / 4, ry + rS / 4, rS / 2);
+            setlinecolor(rocks[i].colLine); setfillcolor(rocks[i].colBase); fillcircle(rx, ry, rS);
+            setfillcolor(rocks[i].colCore); solidcircle(rx + rS / 4, ry + rS / 4, rS / 2);
 
-            // --- ★ 核心引力场逻辑 ★ ---
-            // 只要星体半径达到阈值 (GRAVITY_RADIUS_THRESHOLD) 就有引力
+            // 引力逻辑
             if (rocks[i].radius >= GRAVITY_RADIUS_THRESHOLD && rocks[i].z < GRAVITY_Z_MAX && rocks[i].z > 10) {
-                float dx = rocks[i].x + worldX;
-                float dy = rocks[i].y + worldY;
+                float dx = rocks[i].x + worldX, dy = rocks[i].y + worldY;
                 float dist2D = sqrt(dx * dx + dy * dy);
-
                 if (dist2D < GRAVITY_DIST_MAX && dist2D > 1.0f) {
-                    float dirX = dx / dist2D;
-                    float dirY = dy / dist2D;
-
-                    float intensityZ = 1.0f - (rocks[i].z / GRAVITY_Z_MAX);
-                    float intensityXY = 1.0f - (dist2D / GRAVITY_DIST_MAX);
-
-                    // 黑洞引力倍率为20，普通大星球引力倍率为10
-                    float baseGravity = rocks[i].isBlackHole ? 20.0f : 10.0f;
-                    float pullForce = baseGravity * (intensityZ * intensityZ) * (intensityXY * intensityXY);
-
-                    worldX -= dirX * pullForce;
-                    worldY -= dirY * pullForce;
-
-                    if (pullForce > 5.0f && rand() % 3 == 0) {
-                        sx += rand() % 6 - 3; sy += rand() % 6 - 3;
-                    }
+                    float pull = (rocks[i].isBlackHole ? 20.0f : 10.0f) * pow(1.0f - rocks[i].z / GRAVITY_Z_MAX, 2) * pow(1.0f - dist2D / GRAVITY_DIST_MAX, 2);
+                    worldX -= (dx / dist2D) * pull; worldY -= (dy / dist2D) * pull;
                 }
             }
 
-            // 碰撞扣血机制：黑洞扣3，大星球扣2，小星球扣1
+            // 碰撞扣血逻辑 ★ 已修改：黑洞直接导致 HP 为 0 ★
             if (rocks[i].z < 20 && rocks[i].z > 5) {
                 if (abs(rx - W / 2) < rS * 0.7 && abs(ry - H / 2) < rS * 0.7) {
-                    if (rocks[i].isBlackHole) hp -= 3;
-                    else if (rocks[i].radius >= GRAVITY_RADIUS_THRESHOLD) hp -= 2;
-                    else hp -= 1;
-
+                    if (rocks[i].isBlackHole) {
+                        hp = 0; // 触碰黑洞，能量护盾直接崩解
+                    }
+                    else {
+                        hp -= (rocks[i].radius >= GRAVITY_RADIUS_THRESHOLD ? 2 : 1);
+                    }
                     rocks[i].active = 0; shakeTime = 20; hitFlash = 5;
                 }
             }
@@ -302,10 +227,7 @@ int main() {
                 float bf = 400.0f / bullets[i].z;
                 int bx = (int)((bullets[i].x + worldX) * bf + W / 2) + sx;
                 int by = (int)((bullets[i].y + worldY) * bf + H / 2) + sy;
-
-                setlinecolor(HUD_BLUE);
-                setfillcolor(WHITE);
-                fillcircle(bx, by, (int)(8 * bf + 1));
+                setlinecolor(HUD_BLUE); setfillcolor(WHITE); fillcircle(bx, by, (int)(8 * bf + 1));
 
                 for (int j = 0; j < MAX_ROCKS; j++) {
                     if (rocks[j].active && abs(rocks[j].z - bullets[i].z) < 100) {
@@ -315,11 +237,24 @@ int main() {
                         int rS = (int)(rocks[j].radius * rf);
 
                         if (abs(rx - bx) < rS * 0.9 && abs(ry - by) < rS * 0.9) {
-                            bullets[i].active = 0; // 命中目标，子弹消耗
-                            // ★ 只有小于引力体积阈值的小星球才能被击碎！
+                            bullets[i].active = 0;
                             if (rocks[j].radius < GRAVITY_RADIUS_THRESHOLD) {
-                                rocks[j].active = 0;
-                                score += 50;
+                                int pCount = 0;
+                                for (int k = 0; k < MAX_PARTICLES && pCount < 15; k++) {
+                                    if (!particles[k].active) {
+                                        particles[k].active = 1;
+                                        particles[k].x = rocks[j].x;
+                                        particles[k].y = rocks[j].y;
+                                        particles[k].z = rocks[j].z;
+                                        particles[k].vx = (float)(rand() % 40 - 20);
+                                        particles[k].vy = (float)(rand() % 40 - 20);
+                                        particles[k].vz = (float)(rand() % 10 - 5);
+                                        particles[k].life = 20 + rand() % 10;
+                                        particles[k].col = (rand() % 2 == 0) ? ORANGE : GOLD;
+                                        pCount++;
+                                    }
+                                }
+                                rocks[j].active = 0; score += 50;
                             }
                         }
                     }
@@ -327,10 +262,30 @@ int main() {
             }
         }
 
-        DrawSciFiHUD(hp, score);
+        // --- 更新并绘制火花粒子 ---
+        for (int i = 0; i < MAX_PARTICLES; i++) {
+            if (particles[i].active) {
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                particles[i].z += particles[i].vz;
+                particles[i].life--;
 
-        setlinecolor(HUD_BLUE);
-        circle(W / 2 + sx, H / 2 + sy, 12);
+                float pf = 400.0f / particles[i].z;
+                int px = (int)((particles[i].x + worldX) * pf + W / 2) + sx;
+                int py = (int)((particles[i].y + worldY) * pf + H / 2) + sy;
+
+                if (particles[i].life > 0 && pf > 0) {
+                    setfillcolor(particles[i].col);
+                    solidcircle(px, py, (int)(2 * pf + 1));
+                }
+                else {
+                    particles[i].active = 0;
+                }
+            }
+        }
+
+        DrawSciFiHUD(hp, score);
+        setlinecolor(HUD_BLUE); circle(W / 2 + sx, H / 2 + sy, 12);
         line(W / 2 - 20 + sx, H / 2 + sy, W / 2 - 5 + sx, H / 2 + sy);
         line(W / 2 + 5 + sx, H / 2 + sy, W / 2 + 20 + sx, H / 2 + sy);
         line(W / 2 + sx, H / 2 - 20 + sy, W / 2 + sx, H / 2 - 5 + sy);

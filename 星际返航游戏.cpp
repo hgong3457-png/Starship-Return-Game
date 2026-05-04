@@ -34,8 +34,9 @@ struct Bullet { float x, y, z; int active; };
 void DrawSciFiHUD(int hp, int score) {
     POINT ptsLeftTop[] = { {0,0}, {250,0}, {180, 60}, {0, 60} };
     POINT ptsRightTop[] = { {W,0}, {W - 250,0}, {W - 180, 60}, {W, 60} };
-    POINT ptsBottom[] = { {0, H}, {W, H}, {W - 150, H - 80}, {150, H - 80} };
+    POINT ptsBottom[] = { {0, H}, {W, H}, {W - 150, H - 80}, {150, H - 80} }; // 保持底部驾驶舱占比不变
 
+    // 绘制底部和顶部基础轮廓
     setfillcolor(RGB(15, 18, 25));
     solidpolygon(ptsLeftTop, 4);
     solidpolygon(ptsRightTop, 4);
@@ -46,6 +47,37 @@ void DrawSciFiHUD(int hp, int score) {
     polygon(ptsRightTop, 4);
     polygon(ptsBottom, 4);
 
+    // ==========================================
+    // --- 新增：驾驶舱操控/报警按钮 (下方居中) ---
+    // ==========================================
+    COLORREF btnCol;
+    if (hp > 3) {
+        btnCol = RGB(0, 200, 80); // 正常状态：绿色
+    }
+    else {
+        // 报警状态：红光闪烁 (利用 GetTickCount 控制频率，不影响外部游戏逻辑)
+        if ((GetTickCount() / 200) % 2 == 0) {
+            btnCol = RGB(255, 40, 40); // 亮红
+        }
+        else {
+            btnCol = RGB(80, 10, 10);  // 暗红
+        }
+    }
+
+    // 绘制一排 8 个按钮，均匀分布在下方信息栏的上方
+    for (int i = 0; i < 8; i++) {
+        int bx = W / 2 - 180 + i * 46;
+        int by = H - 65; // 在文本上方
+        setfillcolor(btnCol);
+        solidrectangle(bx, by, bx + 35, by + 12);
+
+        // 给按钮添加暗色边框增加机械质感
+        setlinecolor(RGB(30, 50, 70));
+        rectangle(bx, by, bx + 35, by + 12);
+    }
+    // ==========================================
+
+    // 顶部文本与进度条
     settextcolor(WHITE);
     settextstyle(16, 0, _T("Consolas"));
 
@@ -64,6 +96,7 @@ void DrawSciFiHUD(int hp, int score) {
     setfillcolor(hpCol);
     if (hp > 0) solidrectangle(W - 170, 35, W - 170 + (hp * 15), 45);
 
+    // 下方摧毁提示
     TCHAR s[64];
     _stprintf_s(s, _T("HOSTILES DESTROYED: %d"), score / 50);
     settextcolor(GOLD);

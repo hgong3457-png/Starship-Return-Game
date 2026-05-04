@@ -192,8 +192,24 @@ int main() {
             int ry = (int)((rocks[i].y + worldY) * f + H / 2) + sy;
             int rS = (int)(rocks[i].radius * f);
 
-            setlinecolor(rocks[i].colLine); setfillcolor(rocks[i].colBase); fillcircle(rx, ry, rS);
-            setfillcolor(rocks[i].colCore); solidcircle(rx + rS / 4, ry + rS / 4, rS / 2);
+            // --- 核心配色绘制逻辑修改点 ---
+            setlinecolor(rocks[i].colLine);
+            setfillcolor(rocks[i].colBase);
+            fillcircle(rx, ry, rS);
+
+            // 根据星球索引 i 分配不同的内圆位置，避免“眼球”效果
+            int offsetX = 0, offsetY = 0;
+            int shift = rS / 4;
+            switch (i % 5) {
+            case 1: offsetX = -shift; offsetY = -shift; break; // 左上
+            case 2: offsetX = shift;  offsetY = -shift; break; // 右上
+            case 3: offsetX = -shift; offsetY = shift;  break; // 左下
+            case 4: offsetX = shift;  offsetY = shift;  break; // 右下
+            default: offsetX = 0;      offsetY = 0;      break; // 中心
+            }
+            setfillcolor(rocks[i].colCore);
+            solidcircle(rx + offsetX, ry + offsetY, rS / 2);
+            // ----------------------------------
 
             // 引力逻辑
             if (rocks[i].radius >= GRAVITY_RADIUS_THRESHOLD && rocks[i].z < GRAVITY_Z_MAX && rocks[i].z > 10) {
@@ -205,11 +221,11 @@ int main() {
                 }
             }
 
-            // 碰撞扣血逻辑 ★ 已修改：黑洞直接导致 HP 为 0 ★
+            // 碰撞扣血逻辑
             if (rocks[i].z < 20 && rocks[i].z > 5) {
                 if (abs(rx - W / 2) < rS * 0.7 && abs(ry - H / 2) < rS * 0.7) {
                     if (rocks[i].isBlackHole) {
-                        hp = 0; // 触碰黑洞，能量护盾直接崩解
+                        hp = 0;
                     }
                     else {
                         hp -= (rocks[i].radius >= GRAVITY_RADIUS_THRESHOLD ? 2 : 1);

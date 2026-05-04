@@ -47,9 +47,8 @@ void DrawSciFiHUD(int hp, int score) {
     polygon(ptsRightTop, 4);
     polygon(ptsBottom, 4);
 
-    // ==========================================
+    
     // --- 新增：驾驶舱操控/报警按钮 (下方居中) ---
-    // ==========================================
     COLORREF btnCol;
     if (hp > 3) {
         btnCol = RGB(0, 200, 80); // 正常状态：绿色
@@ -75,7 +74,7 @@ void DrawSciFiHUD(int hp, int score) {
         setlinecolor(RGB(30, 50, 70));
         rectangle(bx, by, bx + 35, by + 12);
     }
-    // ==========================================
+   
 
     // 顶部文本与进度条
     settextcolor(WHITE);
@@ -111,8 +110,14 @@ void DrawDeepSpace() {
 }
 
 int main() {
+    
+    IMAGE img_bg;
     initgraph(W, H);
     srand((unsigned)time(NULL));
+  
+
+    // 加载背景图 
+    loadimage(&img_bg, _T("background.jpg"), W, H);
 
     int hp = 10;
     int score = 0;
@@ -142,10 +147,13 @@ int main() {
             setbkcolor(DEEP_SPACE);
         }
         cleardevice();
-        if (hitFlash == 0) DrawDeepSpace();
 
         int sx = 0, sy = 0;
         if (shakeTime > 0) { sx = rand() % 12 - 6; sy = rand() % 12 - 6; shakeTime--; }
+
+        if (hitFlash == 0)
+            putimage(sx, sy, &img_bg);
+
 
         // 玩家基础移速
         if (GetAsyncKeyState('W') & 0x8000) worldY += 8.0f;

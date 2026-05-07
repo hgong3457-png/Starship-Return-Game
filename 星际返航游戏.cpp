@@ -5,7 +5,7 @@
 #include <cmath>
 #include <tchar.h>
 
-// --- 高级色彩定义 ---
+//高级色彩定义 
 #define DEEP_SPACE RGB(5, 5, 15)
 #define NEBULA_PURPLE RGB(20, 10, 35)
 #define NEBULA_BLUE RGB(10, 20, 40)
@@ -13,7 +13,7 @@
 #define ORANGE RGB(255, 140, 0)
 #define GOLD RGB(255, 215, 0)
 
-// --- 游戏硬核配置 ---
+//游戏参数配置
 #define W 800
 #define H 600
 #define MAX_STARS 300
@@ -22,7 +22,7 @@
 #define MAX_PARTICLES 100 
 #define GOAL_SCORE 1000  
 
-// --- ★ 引力场核心物理参数 ★ ---
+// ！引力场核心物理参数
 #define GRAVITY_DIST_MAX 600.0f         
 #define GRAVITY_Z_MAX 800.0f            
 #define GRAVITY_RADIUS_THRESHOLD 40.0f  
@@ -32,7 +32,7 @@ struct Rock { float x, y, z; int active; float radius; int isBlackHole; COLORREF
 struct Bullet { float x, y, z; int active; };
 struct Particle { float x, y, z; float vx, vy, vz; int life; int active; COLORREF col; };
 
-// --- HUD 绘制 ---
+//HUD 绘制
 void DrawSciFiHUD(int hp, int score) {
     POINT ptsLeftTop[] = { {0,0}, {250,0}, {180, 60}, {0, 60} };
     POINT ptsRightTop[] = { {W,0}, {W - 250,0}, {W - 180, 60}, {W, 60} };
@@ -70,7 +70,8 @@ void DrawSciFiHUD(int hp, int score) {
     settextcolor(GOLD); outtextxy(W / 2 - 90, H - 40, s);
 }
 
-// --- 主菜单 UI ---
+//主菜单 UI 
+
 void ShowMenu() {
     IMAGE menu_bg;
     loadimage(&menu_bg, _T("menu_bg.jpg"), W, H);
@@ -78,19 +79,16 @@ void ShowMenu() {
     int btnW = 220, btnH = 60;
     int startX = W / 2 - btnW / 2, startY = H / 2 - 10;
     int introX = W / 2 - btnW / 2, introY = H / 2 + 80;
-
     while (true) {
         BeginBatchDraw();
         putimage(0, 0, &menu_bg);
         if (!showIntro) {
             settextcolor(HUD_BLUE); settextstyle(60, 0, _T("Consolas"), 0, 0, FW_BOLD, false, false, false);
             outtextxy(W / 2 - textwidth(_T("STAR RETURN")) / 2, H / 3 - 60, _T("STAR RETURN"));
-
             setfillcolor(HUD_BLUE); solidrectangle(startX, startY, startX + btnW, startY + btnH);
             setlinecolor(WHITE); rectangle(startX, startY, startX + btnW, startY + btnH);
             settextcolor(WHITE); settextstyle(28, 0, _T("Consolas"), 0, 0, FW_BOLD, false, false, false);
             outtextxy(startX + (btnW - textwidth(_T("START"))) / 2, startY + (btnH - textheight(_T("START"))) / 2, _T("START"));
-
             setfillcolor(ORANGE); solidrectangle(introX, introY, introX + btnW, introY + btnH);
             setlinecolor(WHITE); rectangle(introX, introY, introX + btnW, introY + btnH);
             settextcolor(WHITE); settextstyle(28, 0, _T("Consolas"), 0, 0, FW_BOLD, false, false, false);
@@ -99,22 +97,29 @@ void ShowMenu() {
         else {
             setfillcolor(RGB(20, 25, 40)); solidrectangle(100, 100, W - 100, H - 100);
             setlinecolor(HUD_BLUE); rectangle(100, 100, W - 100, H - 100);
+
             settextcolor(GOLD); settextstyle(30, 0, _T("黑体"), 0, 0, FW_BOLD, false, false, false);
             outtextxy(W / 2 - textwidth(_T("游 戏 说 明 ")) / 2, 130, _T("游 戏 说 明 "));
-            settextcolor(WHITE); settextstyle(20, 0, _T("黑体"));
+
+   
+            settextcolor(WHITE); settextstyle(18, 0, _T("黑体"));
             RECT textRect = { 130, 190, W - 130, H - 160 };
-            drawtext(_T("（请在这里填入你的游戏说明内容...） "), &textRect, DT_WORDBREAK);
+            drawtext(_T("  “空旅号”勘探舰因一次意外，于宇宙中失联漂泊多年。有一天忽然捕捉到地球的微弱脉冲，于是它调整航向全速返航。沿途各类陨石群，小行星带，大型天体和黑洞引力陷阱接踵而至，你将操控这艘星际飞船精准规划路线，并可借助伽马聚束激光击碎障碍，助它成功回家。                                       该游戏通过WASD操控移动，空格为发射激光的按钮。小型障碍物（随机对应灰色/黄色球体）可以击碎，大型天体（对应蓝/红色）击打无效，且靠近它一定距离范围内会受到万有引力作用导致撞击。黑洞会有更强更广的引力场作用，一旦被吞噬游戏直接结束，返航失败。游戏界面左上方代表返航进程，本游戏通过击碎的小型障碍物数目来量化返航进度，达到20个即视为成功返航。右上方为实时血量（护盾值），共10格。撞击到小型扣除1格，大型扣2格，黑洞则直接清零。"), &textRect, DT_WORDBREAK);
+
             settextcolor(RGB(150, 150, 150)); settextstyle(18, 0, _T("Consolas"));
             outtextxy(W / 2 - textwidth(_T(">> CLICK ANYWHERE TO CLOSE <<")) / 2, H - 140, _T(">> CLICK ANYWHERE TO CLOSE <<"));
         }
         FlushBatchDraw();
-
         while (peekmessage(&msg, EM_MOUSE)) {
             if (msg.message == WM_LBUTTONDOWN) {
-                if (showIntro) showIntro = false;
+                if (showIntro) {
+                    showIntro = false;
+                }
                 else {
                     if (msg.x >= startX && msg.x <= startX + btnW && msg.y >= startY && msg.y <= startY + btnH) return;
-                    if (msg.x >= introX && msg.x <= introX + btnW && msg.y >= introY && msg.y <= introY + btnH) showIntro = true;
+                    if (msg.x >= introX && msg.x <= introX + btnW && msg.y >= introY && msg.y <= introY + btnH) {
+                        showIntro = true;
+                    }
                 }
             }
         }
